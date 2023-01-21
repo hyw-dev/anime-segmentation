@@ -37,11 +37,15 @@ class DatasetGenerator:
         characters_idx = []
         characters_total = 0
         self.random = random.Random(seed)
-        while True:
-            if characters_total >= len(fg_list):
-                break
+        while characters_total < len(fg_list):
             num = self.random.randint(characters_range[0], characters_range[1])
-            characters_idx.append([characters_total + x for x in range(0, num) if characters_total + x < len(fg_list)])
+            characters_idx.append(
+                [
+                    characters_total + x
+                    for x in range(num)
+                    if characters_total + x < len(fg_list)
+                ]
+            )
             characters_total += num
         self.characters_idx = characters_idx
 
@@ -167,7 +171,7 @@ class DatasetGenerator:
             d = 50
             counts = []
             ms = max(output_size)
-            for i in range(0, d):
+            for i in range(d):
                 r = self.random.randint(ms * 2 // 10, ms * 6 // 10)
                 x = output_size[1] // 2 + r * math.cos(math.radians(i / d * 360))
                 y = output_size[0] // 2 + r * math.sin(math.radians(i / d * 360))
@@ -241,7 +245,7 @@ class DatasetGenerator:
         if aug and self.random.randint(0, 1) == 0:
             # random color blocks
             temp_img = np.zeros([*output_size, 4], dtype=np.float32)
-            for _ in range(0, self.random.randint(1, 10)):
+            for _ in range(self.random.randint(1, 10)):
                 if self.random.randint(0, 1) == 0:
                     w = self.random.randint(output_size[1] // 20, output_size[1] // 3)
                     h = self.random.randint(output_size[0] // 20, output_size[0] // 3)
@@ -269,18 +273,15 @@ class DatasetGenerator:
             # random texts
             image = Image.fromarray((image * 255).astype(np.uint8))
             draw = ImageDraw.Draw(image)
-            for _ in range(0, self.random.randint(1, 10)):
+            for _ in range(self.random.randint(1, 10)):
                 if len(self.fonts) == 0:
                     self.fonts = [ImageFont.truetype("font.otf", x, encoding="utf-8") for x in range(10, 60, 2)]
                 font = self.random.choice(self.fonts)
                 s = font.size
-                text = "".join([self.random.choice(self.texts) for _ in range(0, 10)])
+                text = "".join([self.random.choice(self.texts) for _ in range(10)])
                 x = self.random.randint(0, output_size[1] - s * len(text))
                 y = self.random.randint(0, output_size[0] - s)
-                if self.random.randint(0, 1) == 0:
-                    color = (255, 255, 255)
-                else:
-                    color = (0, 0, 0)
+                color = (255, 255, 255) if self.random.randint(0, 1) == 0 else (0, 0, 0)
                 draw.text((x, y), text, color, font=font)
             image = np.asarray(image).astype(np.float32) / 255
 
@@ -294,19 +295,16 @@ class DatasetGenerator:
             label = cv2.warpAffine(label, rot, (w, h),
                                    flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)[:, :, np.newaxis]
 
-        # random quality
-        if aug and self.random.randint(0, 1) == 0:
-            h, w = output_size
-            image = cv2.resize(image, (w // 2, h // 2))
-            image = cv2.resize(image, (w, h), interpolation=self.random.choice([cv2.INTER_LINEAR, cv2.INTER_NEAREST]))
-        if aug and self.random.randint(0, 1) == 0:
-            image = Image.fromarray((image * 255).astype(np.uint8))
-            image_stream = BytesIO()
-            image.save(image_stream, "JPEG", quality=self.random.randrange(20, 70), optimice=True)
-            image_stream.seek(0)
-            image = np.asarray(Image.open(image_stream), dtype=np.float32) / 255
+            if self.random.randint(0, 1) == 0:
+                h, w = output_size
+                image = cv2.resize(image, (w // 2, h // 2))
+                image = cv2.resize(image, (w, h), interpolation=self.random.choice([cv2.INTER_LINEAR, cv2.INTER_NEAREST]))
+            if self.random.randint(0, 1) == 0:
+                image = Image.fromarray((image * 255).astype(np.uint8))
+                image_stream = BytesIO()
+                image.save(image_stream, "JPEG", quality=self.random.randrange(20, 70), optimice=True)
+                image_stream.seek(0)
+                image = np.asarray(Image.open(image_stream), dtype=np.float32) / 255
         return image, label
 
 
-if __name__ == "__main__":
-    pass

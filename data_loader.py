@@ -150,7 +150,7 @@ class AnimeSegDataset(Dataset):
 
         if generator is not None:
             assert generator.output_size_range_w[0] == generator.output_size_range_w[1] \
-                   and generator.output_size_range_h[0] == generator.output_size_range_h[1]
+                       and generator.output_size_range_h[0] == generator.output_size_range_h[1]
 
         self.use_cache = False
         if cache_ratio > 0:
@@ -164,7 +164,7 @@ class AnimeSegDataset(Dataset):
             shared_cache = np.ctypeslib.as_array(shared_cache_base.get_obj())
             shared_cache = shared_cache.reshape(n, c, h, w)
             self.shared_cache = torch.from_numpy(shared_cache)
-            cacheable_samples = random.Random(1).sample(list(range(0, self.__len__())), n)
+            cacheable_samples = random.Random(1).sample(list(range(self.__len__())), n)
             self.cache_idx = [-1] * self.__len__()
             for i, x in enumerate(cacheable_samples):
                 self.cache_idx[x] = i
@@ -183,16 +183,15 @@ class AnimeSegDataset(Dataset):
 
     def __getitem__(self, idx):
         if self.use_cache and self.cache_idx[idx] != -1 \
-                and self.cache_use_count[idx] != 0 and self.cache_use_count[idx] < self.cache_life:
+                    and self.cache_use_count[idx] != 0 and self.cache_use_count[idx] < self.cache_life:
             i = self.cache_idx[idx]
             cache = self.shared_cache[i].float() / 255
-            if self.with_trimap:
-                sample = {'image': cache[0:3], 'label': cache[3:4], 'trimap': cache[4:5]}
-            else:
-                sample = {'image': cache[0:3], 'label': cache[3:4]}
             self.cache_use_count[idx] += 1
-            return sample
-
+            return (
+                {'image': cache[:3], 'label': cache[3:4], 'trimap': cache[4:5]}
+                if self.with_trimap
+                else {'image': cache[:3], 'label': cache[3:4]}
+            )
         if idx < len(self.real_img_list):
             image = cv2.cvtColor(cv2.imread(self.real_img_list[idx], cv2.IMREAD_COLOR), cv2.COLOR_BGR2RGB)
             label = cv2.imread(self.real_mask_list[idx], cv2.IMREAD_GRAYSCALE)[:, :, np.newaxis]
@@ -228,10 +227,7 @@ class AnimeSegDataset(Dataset):
 def create_training_datasets(data_root, fgs_dir, bgs_dir, imgs_dir, masks_dir, fg_ext, bg_ext, img_ext, mask_ext,
                              spilt_rate, image_size, with_trimap=False, cache_ratio=0.0, cache_update_epoch=3):
     def add_sep(path):
-        if not (path.endswith("/") or path.endswith("\\")):
-            return path + os.sep
-        else:
-            return path
+        return path if (path.endswith("/") or path.endswith("\\")) else path + os.sep
 
     data_root = add_sep(data_root)
     fgs_dir = add_sep(fgs_dir)

@@ -53,10 +53,10 @@ class GaussianBlurLayer(nn.Module):
             torch.Tensor: Blurred version of the input
         """
 
-        if not len(list(x.shape)) == 4:
+        if len(list(x.shape)) != 4:
             print('\'GaussianBlurLayer\' requires a 4D tensor as input\n')
             exit()
-        elif not x.shape[1] == self.channels:
+        elif x.shape[1] != self.channels:
             print('In \'GaussianBlurLayer\', the required channel ({0}) is'
                   'not the same as input ({1})\n'.format(self.channels, x.shape[1]))
             exit()
@@ -201,10 +201,7 @@ class InvertedResidual(nn.Module):
             )
 
     def forward(self, x):
-        if self.use_res_connect:
-            return x + self.conv(x)
-        else:
-            return self.conv(x)
+        return x + self.conv(x) if self.use_res_connect else self.conv(x)
 
 
 # ------------------------------------------------------------------------------
@@ -591,9 +588,7 @@ class FusionBranch(nn.Module):
         f2x = self.conv_f2x(torch.cat((lr2x, hr2x), dim=1))
         f = F.interpolate(f2x, scale_factor=2, mode='bilinear', align_corners=False)
         f = self.conv_f(torch.cat((f, img), dim=1))
-        pred_matte = torch.sigmoid(f)
-
-        return pred_matte
+        return torch.sigmoid(f)
 
 
 # ------------------------------------------------------------------------------
@@ -621,7 +616,7 @@ class MODNet(nn.Module):
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 self._init_conv(m)
-            elif isinstance(m, nn.BatchNorm2d) or isinstance(m, nn.InstanceNorm2d):
+            elif isinstance(m, (nn.BatchNorm2d, nn.InstanceNorm2d)):
                 self._init_norm(m)
 
         if self.backbone_pretrained:
