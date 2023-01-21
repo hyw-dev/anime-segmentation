@@ -67,17 +67,21 @@ class AnimeSegmentation(pl.LightningModule):
         state_dict = torch.load(ckpt_path, map_location=map_location)
         if "epoch" in state_dict:
             return cls.load_from_checkpoint(ckpt_path, net_name=net_name, map_location=map_location)
+        model = cls(net_name)
+        if any(k.startswith("net.") for k, v in state_dict.items()):
+            model.load_state_dict(state_dict)
         else:
-            model = cls(net_name)
-            if any([k.startswith("net.") for k, v in state_dict.items()]):
-                model.load_state_dict(state_dict)
-            else:
-                model.net.load_state_dict(state_dict)
-            return model
+            model.net.load_state_dict(state_dict)
+        return model
 
     def configure_optimizers(self):
-        optimizer = optim.Adam(self.net.parameters(), lr=0.001, betas=(0.9, 0.999), eps=1e-08, weight_decay=0)
-        return optimizer
+        return optim.Adam(
+            self.net.parameters(),
+            lr=0.001,
+            betas=(0.9, 0.999),
+            eps=1e-08,
+            weight_decay=0,
+        )
 
     def forward(self, x):
         if isinstance(self.net, ISNetDIS):

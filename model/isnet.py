@@ -13,7 +13,7 @@ def muti_loss_fusion(preds, target):
     loss0 = 0.0
     loss = 0.0
 
-    for i in range(0, len(preds)):
+    for i in range(len(preds)):
         if preds[i].shape[2] != target.shape[2] or preds[i].shape[3] != target.shape[3]:
             tmp_target = F.interpolate(target, size=preds[i].size()[2:], mode='bilinear', align_corners=True)
             loss = loss + bce_loss(preds[i], tmp_target)
@@ -34,7 +34,7 @@ def muti_loss_fusion_kl(preds, target, dfs, fs, mode='MSE'):
     loss0 = 0.0
     loss = 0.0
 
-    for i in range(0, len(preds)):
+    for i in range(len(preds)):
         if preds[i].shape[2] != target.shape[2] or preds[i].shape[3] != target.shape[3]:
             tmp_target = F.interpolate(target, size=preds[i].size()[2:], mode='bilinear', align_corners=True)
             loss = loss + bce_loss(preds[i], tmp_target)
@@ -43,7 +43,7 @@ def muti_loss_fusion_kl(preds, target, dfs, fs, mode='MSE'):
         if i == 0:
             loss0 = loss
 
-    for i in range(0, len(dfs)):
+    for i in range(len(dfs)):
         df = dfs[i]
         fs_i = fs[i]
         if mode == 'MSE':
@@ -68,9 +68,7 @@ class REBNCONV(nn.Module):
 
     def forward(self, x):
         hx = x
-        xout = self.relu_s1(self.bn_s1(self.conv_s1(hx)))
-
-        return xout
+        return self.relu_s1(self.bn_s1(self.conv_s1(hx)))
 
 
 ## upsample tensor 'src' to have the same spatial size with tensor 'tar'
